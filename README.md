@@ -13,8 +13,10 @@ ones that hold in both orders.
 
 ## Run it
 
-From a clone of this folder, with Python 3.8 or later and nothing installed:
+Python 3.8 or later (the tool uses math.comb), tested on 3.11, nothing to install:
 
+    git clone https://github.com/podgortsev/judge-position-check
+    cd judge-position-check
     python judge_check.py analyse examples/judged.csv
 
 Output, copied from that run:
