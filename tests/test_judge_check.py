@@ -342,6 +342,49 @@ ok("its report matches examples/judged.expected.txt", first_diff is None,
 # ==========================================================================
 print()
 print("=" * 70)
+print("HOSTILE INPUT, through the command line")
+print("=" * 70)
+import subprocess as _sp   # noqa: E402
+import tempfile as _tf     # noqa: E402
+
+_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ex = os.path.join(_root, "examples")
+_d = _tf.mkdtemp()
+
+
+def _cli(*args):
+    p = _sp.run([sys.executable, os.path.join(_root, "judge_check.py"), *args],
+                stdout=_sp.PIPE, stderr=_sp.PIPE)
+    return (p.returncode, p.stdout.decode("utf-8", "replace"),
+            p.stderr.decode("utf-8", "replace"))
+
+
+_bad = os.path.join(_d, "latin1.csv")
+with open(_bad, "wb") as _f:
+    _f.write(b"name,value\ncaf\xe9,1\n\xff\xfe,2\n")
+_rc, _out, _err = _cli("analyse", _bad)
+ok("a file that is not UTF-8 is refused in one line, with no traceback",
+   _rc == 1 and "UTF-8" in _err and "Traceback" not in _err
+   and len(_err.strip().splitlines()) == 1, _err[-80:])
+_huge = os.path.join(_d, "huge.csv")
+with open(_huge, "w", encoding="utf-8") as _f:
+    _f.write("name,value\n" + "x" * 200000 + ",1\n")
+_rc, _out, _err = _cli("analyse", _huge)
+ok("a field longer than the csv module reads is refused, with no traceback",
+   _rc == 1 and "Traceback" not in _err, _err[-80:])
+_rc, _out, _err = _cli("analyse", os.path.join(_ex, "judged.csv"), "--json",
+                       os.path.join(_d, "no", "such", "folder", "r.json"))
+ok("a report that cannot be written is refused, with no traceback",
+   _rc == 1 and "Traceback" not in _err, _err[-80:])
+for _v in ("abc", "nan", "0", "-5"):
+    _rc, _out, _err = _cli("run", os.path.join(_ex, "pairs.csv"), "--command",
+                           "x", "--out", os.path.join(_d, "j.csv"),
+                           "--timeout", _v)
+    ok(f"--timeout {_v} is refused", _rc == 1 and "Traceback" not in _err)
+
+# ==========================================================================
+print()
+print("=" * 70)
 print(f"{len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:
     for f in FAIL:

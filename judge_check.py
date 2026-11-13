@@ -98,6 +98,47 @@ DEFAULT_TEMPLATE = ("Here are two answers to the same question.\n\n"
                     "or B.")
 
 
+_WRAP = 118
+_print = print
+
+
+def print(*args, **kwargs):
+    """No report line runs past the report's width: a longer one is wrapped
+    at spaces, and what follows is indented under it."""
+    if len(args) != 1 or kwargs.get("file") is not None:
+        return _print(*args, **kwargs)
+    for line in str(args[0]).split("\n"):
+        if len(line) <= _WRAP:
+            _print(line, **kwargs)
+            continue
+        lead = line[:len(line) - len(line.lstrip(" "))][:_WRAP // 2]
+        pad = lead + "  "
+        cur = lead
+        for word in line[len(lead):].split(" "):
+            if len(cur) + len(word) > _WRAP and cur.strip():
+                _print(cur.rstrip(), **kwargs)
+                cur = pad
+            while len(cur) + len(word) > _WRAP:
+                room = _WRAP - len(cur)
+                _print(cur + word[:room], **kwargs)
+                word, cur = word[room:], pad
+            cur += word + " "
+        if cur.strip():
+            _print(cur.rstrip(), **kwargs)
+
+
+def finite(o):
+    """JSON has no NaN or Infinity: a number that is not finite is written
+    as null."""
+    if isinstance(o, float):
+        return o if o == o and o not in (float("inf"), float("-inf")) else None
+    if isinstance(o, dict):
+        return {k: finite(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [finite(v) for v in o]
+    return o
+
+
 class InputError(ValueError):
     pass
 
@@ -391,6 +432,9 @@ def print_report(res):
     for c in res["comparisons"]:
         fs = c["first_slot"]
         lo, hi = fs["ci"]
+        if not fs["reads"]:
+            print(f"  {c['comparison'][:19]:20}no read chose A or B")
+            continue
         print(f"  {c['comparison'][:19]:20}{fs['a']:5} of {fs['reads']:4} = "
               f"{fs['rate']:6.1%}  [{lo:5.1%}, {hi:5.1%}]  p {fs['p']:.3g}")
     print()
@@ -455,7 +499,7 @@ USAGE = ("usage: judge_check.py run pairs.csv --command CMD --out judged.csv "
          "       judge_check.py analyse judged.csv [--json report.json]")
 
 
-def main(argv):
+def run_main(argv):
     args = list(argv)
     try:
         if not args:
@@ -465,7 +509,15 @@ def main(argv):
             command = take(args, "--command")
             out = take(args, "--out")
             template_path = take(args, "--template")
-            timeout = float(take(args, "--timeout", "120"))
+            traw = take(args, "--timeout", "120")
+            try:
+                timeout = float(traw)
+            except ValueError:
+                raise InputError(f"--timeout must be a number of seconds, "
+                                 f"got {traw!r}")
+            if not 0 < timeout <= 86400:
+                raise InputError("--timeout must be above 0 and at most "
+                                 "86400 seconds")
             if len(args) != 1 or not command or not out:
                 raise InputError(USAGE)
             template = None
@@ -482,14 +534,34 @@ def main(argv):
             print_report(res)
             if json_out:
                 with open(json_out, "w", encoding="utf-8") as f:
-                    json.dump(res, f, indent=2)
+                    json.dump(finite(res), f, indent=2)
             return 0 if res["passed"] else 2
         raise InputError(USAGE)
+    except UnicodeDecodeError as e:
+        print(f"input not usable: a file is not UTF-8 text (byte {e.start}); "
+              f"save it as UTF-8 and run again", file=sys.stderr)
+        return 1
+    except csv.Error as e:
+        print(f"input not usable: a file cannot be read as CSV: {e}",
+              file=sys.stderr)
+        return 1
     except InputError as e:
         print(f"input not usable: {e}" if str(e) != USAGE else USAGE,
               file=sys.stderr)
         return 1
 
 
+def main(argv):
+    try:
+        return run_main(argv)
+    except OSError as e:
+        print(f"input not usable: a file cannot be read or written: {e}",
+              file=sys.stderr)
+        return 1
+
+
 if __name__ == "__main__":
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="backslashreplace")
     sys.exit(main(sys.argv[1:]))

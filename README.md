@@ -159,7 +159,7 @@ sufficient.
 
     python tests/test_judge_check.py
 
-68 checks, under a minute, no model: the reply parser on fixed cases,
+75 checks, under a minute, no model: the reply parser on fixed cases,
 the statistics on hand-computed cases, every verdict on judged data with a
 known structure, the run step driven by small judge scripts with known rules
 (both orders, resuming after a cut, a judge that prints no letter, one that
