@@ -139,6 +139,25 @@ def finite(o):
     return o
 
 
+csv.field_size_limit(2 ** 31 - 1)     # a long field is data, not an error
+
+
+class Rows(csv.DictReader):
+    """csv.DictReader that refuses what it would otherwise hide: a quote
+    that never closes, and a row with more fields than the header, whose
+    extra fields it would drop."""
+
+    def __init__(self, f):
+        super().__init__(f, strict=True)
+
+    def __next__(self):
+        row = super().__next__()
+        if None in row:
+            raise csv.Error(f"line {self.line_num} has more fields than "
+                            f"the header")
+        return row
+
+
 class InputError(ValueError):
     pass
 
@@ -154,7 +173,7 @@ def open_csv(path):
 
 def read_pairs(path):
     with open_csv(path) as f:
-        rd = csv.DictReader(f)
+        rd = Rows(f)
         missing = [c for c in PAIR_COLS if c not in (rd.fieldnames or [])]
         if missing:
             raise InputError(f"missing columns: {', '.join(missing)}. "
@@ -183,7 +202,7 @@ def read_pairs(path):
 def read_judged(path):
     """Returns {comparison: {item: {order: choice}}} in file order."""
     with open_csv(path) as f:
-        rd = csv.DictReader(f)
+        rd = Rows(f)
         missing = [c for c in JUDGED_COLS if c not in (rd.fieldnames or [])]
         if missing:
             raise InputError(f"missing columns: {', '.join(missing)}. "

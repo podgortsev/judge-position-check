@@ -342,6 +342,27 @@ ok("its report matches examples/judged.expected.txt", first_diff is None,
 # ==========================================================================
 print()
 print("=" * 70)
+print("KNOWN ANSWERS AND EDGES, added after mutation testing")
+print("=" * 70)
+import re as _re            # noqa: E402
+import subprocess as _sp2   # noqa: E402
+
+_root2 = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_tool2 = os.path.join(_root2, "judge_check.py")
+with open(_tool2, encoding="utf-8") as _f:
+    _flags = sorted(set(_re.findall(r'"(--[a-z][a-z-]+)"', _f.read())))
+_bad_flags = []
+for _flag in _flags:
+    _p = _sp2.run([sys.executable, _tool2] + ["analyse", os.path.join(_root2, "examples", "judged.csv")] + [_flag],
+                  stdout=_sp2.PIPE, stderr=_sp2.PIPE)
+    if b"Traceback" in _p.stderr or _p.returncode not in (0, 1, 2):
+        _bad_flags.append(_flag)
+ok(f"each of the {len(_flags)} options, given last with no value, ends in "
+   f"exit 0, 1 or 2 and no traceback", not _bad_flags, " ".join(_bad_flags))
+
+# ==========================================================================
+print()
+print("=" * 70)
 print("HOSTILE INPUT, through the command line")
 print("=" * 70)
 import subprocess as _sp   # noqa: E402
@@ -370,8 +391,24 @@ _huge = os.path.join(_d, "huge.csv")
 with open(_huge, "w", encoding="utf-8") as _f:
     _f.write("name,value\n" + "x" * 200000 + ",1\n")
 _rc, _out, _err = _cli("analyse", _huge)
-ok("a field longer than the csv module reads is refused, with no traceback",
-   _rc == 1 and "Traceback" not in _err)
+ok("a field of 200,000 characters is data: read, not refused as too long",
+   "Traceback" not in _err and "field larger" not in _err
+   and "read as CSV" not in _err)
+with open(os.path.join(_ex, "judged.csv"), encoding="utf-8-sig", newline="") as _f:
+    _lines = _f.read().replace("\r\n", "\n").split("\n")
+_open = os.path.join(_d, "open.csv")
+with open(_open, "w", encoding="utf-8", newline="") as _f:
+    _f.write("\n".join(_lines[:3] + ['"' + _lines[3]] + _lines[4:]))
+_rc, _out, _err = _cli("analyse", _open)
+ok("a quote that never closes is refused, not read as one long field",
+   _rc == 1 and "read as CSV" in _err and "Traceback" not in _err)
+_long = os.path.join(_d, "long.csv")
+with open(_long, "w", encoding="utf-8", newline="") as _f:
+    _f.write("\n".join(_lines[:3] + [_lines[3] + ",EXTRA"] + _lines[4:]))
+_rc, _out, _err = _cli("analyse", _long)
+ok("a row with more fields than the header is refused, with its line",
+   _rc == 1 and "Traceback" not in _err and "line 4" in _err
+   and ("more fields" in _err or "cells" in _err))
 _rc, _out, _err = _cli("analyse", os.path.join(_ex, "judged.csv"), "--json",
                        os.path.join(_d, "no", "such", "folder", "r.json"))
 ok("a report that cannot be written is refused, with no traceback",

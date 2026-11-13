@@ -155,11 +155,17 @@ the format being parsed; the probability mass on the letters is the next tool
 in this series. A clean swap is necessary for a judged comparison, not
 sufficient.
 
+Files are read strictly. A file has to be UTF-8, with or without a byte order
+mark. A quote that never closes, or a row with more fields than the header,
+stops the run with exit code 1 and the line number: neither is read around.
+A row with fewer fields than the header is read with its missing fields
+empty. A field may be of any length.
+
 ## Tests
 
     python tests/test_judge_check.py
 
-75 checks, under a minute, no model: the reply parser on fixed cases,
+78 checks, under a minute, no model: the reply parser on fixed cases,
 the statistics on hand-computed cases, every verdict on judged data with a
 known structure, the run step driven by small judge scripts with known rules
 (both orders, resuming after a cut, a judge that prints no letter, one that
