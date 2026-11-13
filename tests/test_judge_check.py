@@ -365,17 +365,17 @@ with open(_bad, "wb") as _f:
 _rc, _out, _err = _cli("analyse", _bad)
 ok("a file that is not UTF-8 is refused in one line, with no traceback",
    _rc == 1 and "UTF-8" in _err and "Traceback" not in _err
-   and len(_err.strip().splitlines()) == 1, _err[-80:])
+   and len(_err.strip().splitlines()) == 1)
 _huge = os.path.join(_d, "huge.csv")
 with open(_huge, "w", encoding="utf-8") as _f:
     _f.write("name,value\n" + "x" * 200000 + ",1\n")
 _rc, _out, _err = _cli("analyse", _huge)
 ok("a field longer than the csv module reads is refused, with no traceback",
-   _rc == 1 and "Traceback" not in _err, _err[-80:])
+   _rc == 1 and "Traceback" not in _err)
 _rc, _out, _err = _cli("analyse", os.path.join(_ex, "judged.csv"), "--json",
                        os.path.join(_d, "no", "such", "folder", "r.json"))
 ok("a report that cannot be written is refused, with no traceback",
-   _rc == 1 and "Traceback" not in _err, _err[-80:])
+   _rc == 1 and "Traceback" not in _err)
 for _v in ("abc", "nan", "0", "-5"):
     _rc, _out, _err = _cli("run", os.path.join(_ex, "pairs.csv"), "--command",
                            "x", "--out", os.path.join(_d, "j.csv"),
