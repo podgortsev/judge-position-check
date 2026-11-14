@@ -26,6 +26,11 @@ sys.path.insert(0, ROOT)
 import judge_check as JC      # noqa: E402
 
 PASS, FAIL = [], []
+
+
+def read_json(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 PY = f'"{sys.executable}"'
 
 
@@ -184,7 +189,7 @@ ok("few items is warned about",
 jp = tmp("report.json")
 quiet_main(["analyse", p, "--json", jp])
 ok("--json writes the verdict",
-   json.load(open(jp, encoding="utf-8"))["verdict"] in
+   read_json(jp)["verdict"] in
    ("SURVIVES", "NOTHING TO TEST"))
 
 # ==========================================================================
@@ -359,6 +364,19 @@ for _flag in _flags:
         _bad_flags.append(_flag)
 ok(f"each of the {len(_flags)} options, given last with no value, ends in "
    f"exit 0, 1 or 2 and no traceback", not _bad_flags, " ".join(_bad_flags))
+_pu = _sp2.run([sys.executable, _tool2], stdout=_sp2.PIPE, stderr=_sp2.PIPE)
+ok("with no arguments: the usage line, exit 1, nothing on standard output",
+   _pu.returncode == 1 and _pu.stderr.decode().lower().startswith("usage")
+   and not _pu.stdout.strip())
+_miss = [a + ".missing" if os.path.isfile(a) else a for a in ["analyse", os.path.join(_root2, "examples", "judged.csv")]]
+if _miss != ["analyse", os.path.join(_root2, "examples", "judged.csv")]:
+    _pm = _sp2.run([sys.executable, _tool2] + _miss, stdout=_sp2.PIPE,
+                   stderr=_sp2.PIPE)
+    ok("a file that is not there: 'input not usable', exit 1, no usage "
+       "line in its place",
+       _pm.returncode == 1
+       and _pm.stderr.decode().startswith("input not usable")
+       and b"Traceback" not in _pm.stderr)
 
 # ==========================================================================
 print()
