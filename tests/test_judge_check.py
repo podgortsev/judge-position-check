@@ -349,6 +349,17 @@ print()
 print("=" * 70)
 print("KNOWN ANSWERS AND EDGES, added after mutation testing")
 print("=" * 70)
+import judge_check as _M   # noqa: E402
+import time as _time6        # noqa: E402
+_t6 = _time6.time()
+_big6 = _M.half_tail(200000, 99500)
+ok("the exact tail of a binomial is the same sum on both sides of n = 1000 "
+   "and matches scipy: 0.108724146602, 0.103053655416, 0.012746945333",
+   abs(_M.half_tail(1000, 480) - 0.10872414660207082) < 1e-14
+   and abs(_M.half_tail(1001, 480) - 0.10305365541647606) < 1e-11
+   and abs(_big6 - 0.012746945333473042) < 1e-10)
+ok("and 200,000 discordant pairs take seconds, not hours",
+   _time6.time() - _t6 < 20)
 import re as _re            # noqa: E402
 import subprocess as _sp2   # noqa: E402
 

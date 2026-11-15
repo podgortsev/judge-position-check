@@ -300,12 +300,24 @@ def run(pairs_path, command, out_path, template=None, timeout=120,
 
 # ---------------------------------------------------------------- statistics
 
+def half_tail(n, k):
+    """P(X <= k) for X binomial(n, 1/2). Whole-number arithmetic up to
+    n = 1000; above that the same sum in logarithms, because the whole
+    numbers grow with n and the time with their square."""
+    if n <= 1000:
+        return sum(math.comb(n, i) for i in range(k + 1)) / 2 ** n
+    base = math.lgamma(n + 1) - n * math.log(2)
+    return math.fsum(math.exp(base - math.lgamma(i + 1)
+                              - math.lgamma(n - i + 1))
+                     for i in range(k + 1))
+
+
 def binom_two_sided(k, n):
     """Exact two-sided binomial test of k successes in n against one half."""
     if n == 0:
         return 1.0
     kk = min(k, n - k)
-    return min(1.0, 2 * sum(math.comb(n, i) for i in range(kk + 1)) / 2 ** n)
+    return min(1.0, 2 * half_tail(n, kk))
 
 
 def wilson(k, n, z=1.96):
