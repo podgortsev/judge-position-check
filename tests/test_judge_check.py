@@ -375,6 +375,18 @@ for _flag in _flags:
         _bad_flags.append(_flag)
 ok(f"each of the {len(_flags)} options, given last with no value, ends in "
    f"exit 0, 1 or 2 and no traceback", not _bad_flags, " ".join(_bad_flags))
+import ast as _ast8          # noqa: E402
+import glob as _glob8        # noqa: E402
+_not38 = []
+for _py8 in sorted(_glob8.glob(os.path.join(_root2, "*.py"))
+                   + _glob8.glob(os.path.join(_root2, "examples", "*.py"))):
+    with open(_py8, encoding="utf-8") as _f:
+        try:
+            _ast8.parse(_f.read(), feature_version=(3, 8))
+        except SyntaxError:
+            _not38.append(os.path.basename(_py8))
+ok("every Python file of the tool parses under the Python 3.8 grammar",
+   not _not38, " ".join(_not38))
 _pu = _sp2.run([sys.executable, _tool2], stdout=_sp2.PIPE, stderr=_sp2.PIPE)
 ok("with no arguments: the usage line, exit 1, nothing on standard output",
    _pu.returncode == 1 and _pu.stderr.decode().lower().startswith("usage")

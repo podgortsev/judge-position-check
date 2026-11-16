@@ -13,7 +13,9 @@ ones that hold in both orders.
 
 ## Run it
 
-Python 3.8 or later (the tool uses math.comb), tested on 3.11, nothing to install:
+Python 3.11, nothing to install. The code keeps to the language and the
+standard library of Python 3.8 and is checked against that grammar, but 3.11
+is the version it has been run on:
 
     git clone https://github.com/podgortsev/judge-position-check
     cd judge-position-check
@@ -165,7 +167,7 @@ empty. A field may be of any length.
 
     python tests/test_judge_check.py
 
-82 checks, under a minute, no model: the reply parser on fixed cases,
+83 checks, under a minute, no model: the reply parser on fixed cases,
 the statistics on hand-computed cases, every verdict on judged data with a
 known structure, the run step driven by small judge scripts with known rules
 (both orders, resuming after a cut, a judge that prints no letter, one that
